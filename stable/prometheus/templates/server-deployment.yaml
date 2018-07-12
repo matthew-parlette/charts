@@ -110,8 +110,12 @@ spec:
             - name: config-volume
               mountPath: /etc/config
             - name: storage-volume
+              {{- if .Values.server.persistentVolume.enabled }}
               mountPath: {{ .Values.server.persistentVolume.mountPath }}
               subPath: "{{ .Values.server.persistentVolume.subPath }}"
+              {{- else if .Values.server.cephVolume.enabled }}
+              mountPath: {{ .Values.server.cephVolume.mountPath }}
+              {{- end }}
           {{- range .Values.server.extraHostPathMounts }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
@@ -152,6 +156,9 @@ spec:
         {{- if .Values.server.persistentVolume.enabled }}
           persistentVolumeClaim:
             claimName: {{ if .Values.server.persistentVolume.existingClaim }}{{ .Values.server.persistentVolume.existingClaim }}{{- else }}{{ template "prometheus.server.fullname" . }}{{- end }}
+        {{- else if .Values.server.cephVolume.enabled }}
+          cephfs:
+{{ toYaml .Values.server.cephVolume.cephfs | indent 12 }}
         {{- else }}
           emptyDir: {}
         {{- end -}}

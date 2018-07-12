@@ -63,8 +63,12 @@ spec:
             - name: config-volume
               mountPath: /etc/config
             - name: storage-volume
+              {{- if .Values.alertmanager.persistentVolume.enabled }}
               mountPath: "{{ .Values.alertmanager.persistentVolume.mountPath }}"
               subPath: "{{ .Values.alertmanager.persistentVolume.subPath }}"
+              {{- else if .Values.alertmanager.cephVolume.enabled }}
+              mountPath: "{{ .Values.alertmanager.cephVolume.mountPath }}"
+              {{- end }}
 
         - name: {{ template "prometheus.name" . }}-{{ .Values.alertmanager.name }}-{{ .Values.configmapReload.name }}
           image: "{{ .Values.configmapReload.image.repository }}:{{ .Values.configmapReload.image.tag }}"
@@ -102,6 +106,9 @@ spec:
         {{- if .Values.alertmanager.persistentVolume.enabled }}
           persistentVolumeClaim:
             claimName: {{ if .Values.alertmanager.persistentVolume.existingClaim }}{{ .Values.alertmanager.persistentVolume.existingClaim }}{{- else }}{{ template "prometheus.alertmanager.fullname" . }}{{- end }}
+        {{- else if .Values.alertmanager.cephVolume.enabled }}
+          cephfs:
+{{ toYaml .Values.alertmanager.cephVolume.cephfs | indent 12 }}
         {{- else }}
           emptyDir: {}
         {{- end -}}
